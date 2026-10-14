@@ -14,6 +14,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || '')
   .split(',')
   .map((o) => o.trim().replace(/\/$/, ''))
   .filter(Boolean);
+allowedOrigins.push('https://lucent-pegasus-7beb8d.netlify.app');
 
 // Convenience for local development only
 if (process.env.NODE_ENV !== 'production') {
