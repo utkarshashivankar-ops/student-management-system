@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Register</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">SR</span>
+        <span class="brand-name">Student Register</span>
+      </div>
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab is-active" data-view="home">Home</button>
+        <button class="tab" data-view="list">Student list</button>
+        <button class="tab" data-view="add">Add student</button>
+        <button class="tab" data-view="search">Search</button>
+      </nav>
+      <div class="status" id="status" role="status" aria-live="polite">
+        <span class="dot" id="statusDot"></span><span id="statusText">Checking server…</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section class="view is-active" id="view-home">
+      <div class="hero">
+        <h1>Every student record, in one register.</h1>
+        <p>Add new students, find anyone in seconds, and keep details up to date. Data is stored in MongoDB Atlas and served through an API on Render.</p>
+        <div class="hero-actions">
+          <button class="btn primary" data-go="add">Add a student</button>
+          <button class="btn" data-go="list">Open student list</button>
+        </div>
+      </div>
+      <div class="stats" id="stats">
+        <div class="stat"><span class="stat-num" id="statTotal">–</span><span class="stat-label">students enrolled</span></div>
+        <div class="stat"><span class="stat-num" id="statDepts">–</span><span class="stat-label">departments</span></div>
+        <div class="stat"><span class="stat-num" id="statLatest">–</span><span class="stat-label">most recently added</span></div>
+      </div>
+      <div class="flow" aria-label="How the app is hosted">
+        <div class="flow-step"><strong>Browser</strong><span>you are here</span></div>
+        <span class="flow-arrow" aria-hidden="true">›</span>
+        <div class="flow-step"><strong>Netlify</strong><span>frontend</span></div>
+        <span class="flow-arrow" aria-hidden="true">›</span>
+        <div class="flow-step"><strong>Render</strong><span>Express API</span></div>
+        <span class="flow-arrow" aria-hidden="true">›</span>
+        <div class="flow-step"><strong>MongoDB Atlas</strong><span>database</span></div>
+      </div>
+    </section>
+
+    <!-- LIST -->
+    <section class="view" id="view-list">
+      <div class="view-head">
+        <h2>Student list</h2>
+        <button class="btn" id="refreshBtn">Refresh</button>
+      </div>
+      <div class="table-wrap" id="listWrap"></div>
+    </section>
+
+    <!-- ADD -->
+    <section class="view" id="view-add">
+      <div class="view-head"><h2>Add student</h2></div>
+      <form class="card form" id="addForm" novalidate>
+        <div class="grid">
+          <label>Student ID
+            <input name="studentId" required maxlength="20" placeholder="ST101" autocomplete="off" />
+          </label>
+          <label>Full name
+            <input name="name" required maxlength="80" placeholder="Rahul Sharma" autocomplete="off" />
+          </label>
+          <label>Email
+            <input name="email" type="email" required placeholder="rahul@example.com" autocomplete="off" />
+          </label>
+          <label>Department
+            <input name="department" required maxlength="60" placeholder="Computer Science" autocomplete="off" />
+          </label>
+          <label>Semester
+            <select name="semester" required>
+              <option value="">Select…</option>
+              <option>1</option><option>2</option><option>3</option><option>4</option>
+              <option>5</option><option>6</option><option>7</option><option>8</option>
+            </select>
+          </label>
+          <label>Contact number <small>(optional)</small>
+            <input name="contact" inputmode="numeric" maxlength="10" placeholder="9876543210" autocomplete="off" />
+          </label>
+        </div>
+        <p class="form-error" id="addError" role="alert"></p>
+        <div class="form-actions">
+          <button type="submit" class="btn primary" id="addSubmit">Add student</button>
+          <button type="reset" class="btn">Clear form</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="view" id="view-search">
+      <div class="view-head"><h2>Search</h2></div>
+      <form class="card searchbar" id="searchForm">
+        <input id="searchInput" type="search" placeholder="Search by ID, name, email or department" aria-label="Search students" autocomplete="off" />
+        <button class="btn primary" type="submit">Search</button>
+      </form>
+      <div class="table-wrap" id="searchWrap"><p class="empty">Type a name, ID, email or department to find students.</p></div>
+    </section>
+  </main>
+
+  <!-- EDIT DIALOG -->
+  <dialog id="editDialog">
+    <form id="editForm" novalidate>
+      <h3>Edit student</h3>
+      <p class="muted" id="editSub"></p>
+      <div class="grid">
+        <label>Student ID
+          <input name="studentId" disabled />
+        </label>
+        <label>Full name
+          <input name="name" required maxlength="80" />
+        </label>
+        <label>Email
+          <input name="email" type="email" required />
+        </label>
+        <label>Department
+          <input name="department" required maxlength="60" />
+        </label>
+        <label>Semester
+          <select name="semester" required>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </label>
+        <label>Contact number
+          <input name="contact" inputmode="numeric" maxlength="10" />
+        </label>
+      </div>
+      <p class="form-error" id="editError" role="alert"></p>
+      <div class="form-actions">
+        <button type="submit" class="btn primary" id="editSubmit">Save changes</button>
+        <button type="button" class="btn" id="editCancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DELETE DIALOG -->
+  <dialog id="deleteDialog">
+    <h3>Delete student?</h3>
+    <p id="deleteText"></p>
+    <div class="form-actions">
+      <button class="btn danger" id="deleteConfirm">Delete student</button>
+      <button class="btn" id="deleteCancel">Keep student</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
