@@ -44,7 +44,7 @@ export function safeEq(a, b) {
 
 // ---------- redirect URI allow-list ----------
 function redirectAllowed(uri) {
-  if (uri === "https://claude.ai/api/mcp/auth_callback") return true;
+   if (uri === "https://claude.ai/api/mcp/auth_callback" || uri === "https://claude.com/api/mcp/auth_callback") return true;
   try {
     const u = new URL(uri); // Claude Code uses a loopback redirect on a random port
     return u.protocol === "http:" && (u.hostname === "localhost" || u.hostname === "127.0.0.1") && u.pathname === "/callback";
@@ -119,7 +119,7 @@ function redirectWith(res, uri, params) {
 function securityHeaders(res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai http://localhost:* http://127.0.0.1:*; frame-ancestors 'none'; base-uri 'none'");
+  res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://claude.ai  https://claude.com http://localhost:* http://127.0.0.1:*; frame-ancestors 'none'; base-uri 'none'");
   res.setHeader("Referrer-Policy", "no-referrer");
 }
 function loginPage(q, message) {

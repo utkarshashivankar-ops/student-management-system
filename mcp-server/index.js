@@ -48,6 +48,7 @@ function buildServer() {
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1); // Render sits behind a proxy
+app.use((req, res, next) => { res.on("finish", () => console.log(req.method + " " + req.path + " " + res.statusCode)); next(); });
 
 app.get("/health", (req, res) => res.json({ status: "ok", oauth: oauthConfigured() }));
 
