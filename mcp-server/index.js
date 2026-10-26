@@ -195,7 +195,198 @@ function buildServer() {
       return ok({ deleted: true, student });
     })
   );
+  // FRONTEND FILE TOOLS - GitHub only, no backend/database changes
 
+  const GITHUB_OWNER = "utkarshashivankar-ops";
+  const GITHUB_REPO = "student-management-system";
+  const FRONTEND_ROOT = "frontend/";
+
+  async function githubRequest(path, options = {}) {
+    const token = process.env.GITHUB_TOKEN;
+
+    if (!token) {
+      throw new Error("GITHUB_TOKEN environment variable is missing.");
+    }
+
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/${path}`,
+      {
+        ...options,
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          ...(options.headers || {}),
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        `GitHub API error ${response.status}: ${data.message || "Request failed"}`
+      );
+    }
+
+    return data;
+  }
+
+  function validateFrontendPath(filePath) {
+    if (
+      typeof filePath !== "string" ||
+      !filePath.startsWith(FRONTEND_ROOT) ||
+      filePath.includes("..") ||
+      filePath.includes("\\") ||
+      filePath.startsWith("/") ||
+      !/\.(html|css|js|jsx|ts|tsx|json|svg|md|txt)$/i.test(filePath)
+    ) {
+      throw new Error(
+        "Only frontend text files are allowed. Use a path such as frontend/index.html."
+      );
+    }
+
+    return filePath;
+  }
+
+  server.registerTool(
+    "list_frontend_files",
+    {
+      title: "List frontend files",
+      description:
+        "List files in the student-management-system frontend folder. Does not modify files.",
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    },
+    safe(async () => {
+      const data = await githubRequest(
+        "git/trees/main?recursive=1"
+      );
+
+      const files = (data.tree || [])
+        .filter(
+          (item) =>
+            item.type === "blob" &&
+            item.path.startsWith(FRONTEND_ROOT) &&
+            /\.(html|css|js|jsx|ts|tsx|json|svg|md|txt)$/i.test(item.path)
+        )
+        .map((item) => item.path);
+
+      return ok({ count: files.length, files });
+    })
+  );
+
+  server.registerTool(
+    "get_frontend_file",
+    {
+      title: "Read frontend file",
+      description:
+        "Read a text file from the frontend folder of the GitHub repository. Does not modify files.",
+      inputSchema: {
+        path: z.string().min(1).max(300).describe(
+          "Repository path, e.g. frontend/index.html"
+        ),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    },
+    safe(async ({ path }) => {
+      validateFrontendPath(path);
+
+      const file = await githubRequest(
+        `contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=main`
+      );
+
+      if (file.encoding !== "base64" || !file.content) {
+        return fail("File content is unavailable or not a supported text file.");
+      }
+
+      return ok({
+        path: file.path,
+        content: Buffer.from(file.content, "base64").toString("utf8"),
+      });
+    })
+  );
+
+  server.registerTool(
+    "publish_frontend_file_to_main",
+    {
+      title: "Publish frontend file to GitHub",
+      description:
+        "Create or update a text file under frontend/ on the main branch. This can trigger a Netlify deployment. Only call after the user explicitly approves the exact file path and complete content. Requires confirm=true.",
+      inputSchema: {
+        path: z.string().min(1).max(300).describe(
+          "Repository path, e.g. frontend/index.html"
+        ),
+        content: z.string().max(1000000).describe(
+          "Complete new file content"
+        ),
+        commitMessage: z.string().min(5).max(150).describe(
+          "Git commit message"
+        ),
+        confirm: z.boolean().describe(
+          "Must be true only after the user approves this exact change"
+        ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    safe(async ({ path, content, commitMessage, confirm }) => {
+      validateFrontendPath(path);
+
+      if (confirm !== true) {
+        return fail(
+          "Not published. First show the user the exact path and full content, then get approval."
+        );
+      }
+
+      let sha;
+
+      try {
+        const existing = await githubRequest(
+          `contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=main`
+        );
+        sha = existing.sha;
+      } catch (error) {
+        if (!error.message.includes("GitHub API error 404")) {
+          throw error;
+        }
+      }
+
+      const result = await githubRequest(
+        `contents/${path.split("/").map(encodeURIComponent).join("/")}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: commitMessage,
+            content: Buffer.from(content, "utf8").toString("base64"),
+            branch: "main",
+            ...(sha ? { sha } : {}),
+          }),
+        }
+      );
+
+      return ok({
+        success: true,
+        path: result.content?.path || path,
+        commit: result.commit?.sha,
+        message:
+          "Frontend file committed to main. Netlify deployment may take a few minutes.",
+      });
+    })
+  );
   return server;
 }
 
