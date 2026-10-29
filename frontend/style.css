@@ -85,8 +85,8 @@ main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
   cursor: pointer; font-weight: 500;
 }
 .btn:hover { border-color: #aab6bf; }
-.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-.btn.primary:hover { background: var(--brand-dark); }
+.btn.primary { background: #6C3CE9; border-color: #6C3CE9; color: #FFFFFF; }
+.btn.primary:hover { background: #5429C4; border-color: #5429C4; }
 .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn.danger:hover { background: #8e1d17; }
 .btn.small { padding: 5px 11px; font-size: 0.88rem; }
